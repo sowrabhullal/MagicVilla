@@ -1,0 +1,6 @@
+@MagicVillaWebApi_HostAddress = http://localhost:5276
+
+GET {{MagicVillaWebApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
