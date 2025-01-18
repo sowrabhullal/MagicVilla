@@ -32,6 +32,9 @@ namespace MagicVillaWebApi.Controllers.V1
 
         [Authorize]
         [HttpGet]
+        //cache stored in client machine
+        //[ResponseCache(Duration = 100000)]
+        [ResponseCache(CacheProfileName= "Default30")]
         public async Task<ActionResult<APIResponse>> GetVillas()
         {
             try
@@ -115,7 +118,7 @@ namespace MagicVillaWebApi.Controllers.V1
         }
 
         [HttpDelete("id")]
-        [Authorize(Roles = "CUSTOM")]
+        [Authorize(Roles = "admin")]
         public async Task<ActionResult<APIResponse>> DeleteVilla(int id)
         {
             try

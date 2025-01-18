@@ -1,13 +1,16 @@
 ﻿using MagicVillaWebApi.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace MagicVillaWebApi.Data
 {
     public class ApplicationDbContext: DbContext
+    //public class ApplicationDbContext: IdentityDbContext<ApplicationUser>
     {
         public DbSet<Villa> villas {  get; set; }
         public DbSet<LocalUser> localuser { get; set; }
+        public DbSet<ApplicationUser> applicationuser { get; set; }
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options): base(options)
         {

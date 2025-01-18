@@ -1,8 +1,10 @@
 using MagicVillaWebApi;
 using MagicVillaWebApi.Data;
+using MagicVillaWebApi.Models;
 using MagicVillaWebApi.Repository;
 using MagicVillaWebApi.Repository.IRepository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
@@ -32,6 +34,18 @@ builder.Services.AddVersionedApiExplorer(options =>
     options.GroupNameFormat = "'v'VVV";
     options.SubstituteApiVersionInUrl = true;
 });
+
+builder.Services.AddControllers(option => {
+    option.CacheProfiles.Add("Default30",
+       new CacheProfile()
+       {
+           Duration = 30
+       });
+}).AddNewtonsoftJson().AddXmlDataContractSerializerFormatters();
+
+builder.Services.AddResponseCaching();
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+    .AddEntityFrameworkStores<ApplicationDbContext>();
 
 var key = builder.Configuration.GetValue<string>("ApiSettings:apisecret");
 
