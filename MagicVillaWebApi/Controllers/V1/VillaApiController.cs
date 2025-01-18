@@ -10,10 +10,12 @@ using MagicVillaWebApi.Repository.IRepository;
 using System.Net;
 using Microsoft.AspNetCore.Authorization;
 
-namespace MagicVillaWebApi.Controllers
+namespace MagicVillaWebApi.Controllers.V1
 {
-    [Route("api/[controller]")]
+    [Route("api/v{version:apiVersion}/MagicVillaWebApi")]
     [ApiController]
+    [ApiVersion("1.0")]
+
     public class VillaApiController : ControllerBase
     {
 
@@ -21,7 +23,8 @@ namespace MagicVillaWebApi.Controllers
         private readonly IMapper _mapper;
         protected APIResponse _response;
 
-        public VillaApiController(IVillaRepository repo, IMapper mapper) {
+        public VillaApiController(IVillaRepository repo, IMapper mapper)
+        {
             repository = repo;
             _mapper = mapper;
             _response = new();
@@ -29,7 +32,8 @@ namespace MagicVillaWebApi.Controllers
 
         [Authorize]
         [HttpGet]
-        public async Task<ActionResult<APIResponse>> GetVillas() {
+        public async Task<ActionResult<APIResponse>> GetVillas()
+        {
             try
             {
                 IEnumerable<Villa> villaList = await repository.GetAllAsync();
@@ -43,14 +47,15 @@ namespace MagicVillaWebApi.Controllers
                 _response.ErrorMessages
                      = new List<string>() { ex.ToString() };
             }
-            
+
 
             return Ok(_response);
         }
 
         [HttpGet("id")]
         [Authorize(Roles = "admin")]
-        public async Task<ActionResult<APIResponse>> GetVilla(int id) {
+        public async Task<ActionResult<APIResponse>> GetVilla(int id)
+        {
             try
             {
                 if (id == 0)
@@ -68,16 +73,18 @@ namespace MagicVillaWebApi.Controllers
                 _response.Result = _mapper.Map<VillaDto>(villa);
                 _response.StatusCode = HttpStatusCode.OK;
             }
-            catch (Exception ex) { 
-            
+            catch (Exception ex)
+            {
+
             }
-            
+
             return Ok(_response);
         }
 
         [HttpPost]
-        [Authorize(Roles ="admin")]
-        public async Task<ActionResult<APIResponse>> CreateVilla([FromBody]VillaCreateDto createvillaDto) {
+        [Authorize(Roles = "admin")]
+        public async Task<ActionResult<APIResponse>> CreateVilla([FromBody] VillaCreateDto createvillaDto)
+        {
             try
             {
                 if (createvillaDto == null)
@@ -97,19 +104,22 @@ namespace MagicVillaWebApi.Controllers
                 _response.Result = _mapper.Map<VillaDto>(model);
                 _response.StatusCode = HttpStatusCode.Created;
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 _response.IsSuccess = false;
                 _response.ErrorMessages
                      = new List<string>() { ex.ToString() };
             }
-           
+
             return Ok(_response);
         }
 
         [HttpDelete("id")]
         [Authorize(Roles = "CUSTOM")]
-        public async Task<ActionResult<APIResponse>> DeleteVilla(int id) {
-            try {
+        public async Task<ActionResult<APIResponse>> DeleteVilla(int id)
+        {
+            try
+            {
                 if (id == 0)
                 {
                     return BadRequest();
@@ -124,19 +134,22 @@ namespace MagicVillaWebApi.Controllers
                 _response.StatusCode = HttpStatusCode.NoContent;
                 _response.IsSuccess = true;
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 _response.IsSuccess = false;
                 _response.ErrorMessages
                      = new List<string>() { ex.ToString() };
             }
-            
+
             return _response;
 
         }
 
         [HttpPut]
-        public async Task<ActionResult<APIResponse>> UpdateVilla(int id, [FromBody]VillaUpdateDto updatevillaDto) {
-            try {
+        public async Task<ActionResult<APIResponse>> UpdateVilla(int id, [FromBody] VillaUpdateDto updatevillaDto)
+        {
+            try
+            {
                 if (id != updatevillaDto.Id)
                 {
                     return BadRequest(updatevillaDto);
@@ -159,12 +172,14 @@ namespace MagicVillaWebApi.Controllers
         }
 
         [HttpPatch]
-        public async Task<ActionResult<VillaDto>> PatchVilla(int id, JsonPatchDocument<VillaUpdateDto> patch) {
-            if (id == 0 || patch == null) {
+        public async Task<ActionResult<VillaDto>> PatchVilla(int id, JsonPatchDocument<VillaUpdateDto> patch)
+        {
+            if (id == 0 || patch == null)
+            {
                 return BadRequest();
             }
 
-            var villa= await repository.GetAsync(u => u.Id == id, tracked:false);
+            var villa = await repository.GetAsync(u => u.Id == id, tracked: false);
             VillaUpdateDto villaDto = _mapper.Map<VillaUpdateDto>(villa);
 
             if (villaDto == null) { return NotFound(); }
@@ -175,10 +190,12 @@ namespace MagicVillaWebApi.Controllers
 
             repository.UpdateAsync(model1);
 
-            if (!ModelState.IsValid) {
+            if (!ModelState.IsValid)
+            {
                 return BadRequest();
             }
-            else { 
+            else
+            {
                 return NoContent();
             }
         }

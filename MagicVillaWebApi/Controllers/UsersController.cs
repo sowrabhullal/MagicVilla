@@ -8,8 +8,9 @@ using System.Net;
 
 namespace MagicVillaWebApi.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     [ApiController]
+    [ApiVersionNeutral]
     public class UsersController : ControllerBase
     {
         IUserRepository repository;
