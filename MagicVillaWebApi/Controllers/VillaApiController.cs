@@ -4,6 +4,11 @@ using MagicVillaWebApi.Models.Dto;
 using MagicVillaWebApi.Models;
 using MagicVillaWebApi.Data;
 using Microsoft.AspNetCore.JsonPatch;
+using Microsoft.EntityFrameworkCore;
+using AutoMapper;
+using MagicVillaWebApi.Repository.IRepository;
+using System.Net;
+using Microsoft.AspNetCore.Authorization;
 
 namespace MagicVillaWebApi.Controllers
 {
@@ -11,93 +16,164 @@ namespace MagicVillaWebApi.Controllers
     [ApiController]
     public class VillaApiController : ControllerBase
     {
-        private readonly ILogger<VillaApiController> _logger;
-        public VillaApiController(ILogger<VillaApiController> logger) { 
-            _logger = logger;
+
+        IVillaRepository repository;
+        private readonly IMapper _mapper;
+        protected APIResponse _response;
+
+        public VillaApiController(IVillaRepository repo, IMapper mapper) {
+            repository = repo;
+            _mapper = mapper;
+            _response = new();
         }
 
+        [Authorize]
         [HttpGet]
-        public ActionResult<IEnumerable<VillaDto>> GetVillas() {
-            return VillaStore.villaList;
+        public async Task<ActionResult<APIResponse>> GetVillas() {
+            try
+            {
+                IEnumerable<Villa> villaList = await repository.GetAllAsync();
+
+                _response.Result = _mapper.Map<List<VillaDto>>(villaList);
+                _response.StatusCode = HttpStatusCode.OK;
+            }
+            catch (Exception ex)
+            {
+                _response.IsSuccess = false;
+                _response.ErrorMessages
+                     = new List<string>() { ex.ToString() };
+            }
+            
+
+            return Ok(_response);
         }
 
         [HttpGet("id")]
-        public ActionResult<VillaDto> GetVilla(int id) {
-            if (id == 0) {
-                return BadRequest();
-            }
-            var villa = VillaStore.villaList.FirstOrDefault(u => u.Id == id);
-            if (villa == null)
+        [Authorize(Roles = "admin")]
+        public async Task<ActionResult<APIResponse>> GetVilla(int id) {
+            try
             {
-                return NotFound();
+                if (id == 0)
+                {
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    return BadRequest();
+                }
+                var villa = await repository.GetAsync(u => u.Id == id);
+
+                if (villa == null)
+                {
+                    _response.StatusCode = HttpStatusCode.NotFound;
+                    return NotFound();
+                }
+                _response.Result = _mapper.Map<VillaDto>(villa);
+                _response.StatusCode = HttpStatusCode.OK;
             }
-            return Ok(villa);
+            catch (Exception ex) { 
+            
+            }
+            
+            return Ok(_response);
         }
 
         [HttpPost]
-        public ActionResult<VillaDto> CreateVilla([FromBody]VillaDto villaDto) {
+        [Authorize(Roles ="admin")]
+        public async Task<ActionResult<APIResponse>> CreateVilla([FromBody]VillaCreateDto createvillaDto) {
+            try
+            {
+                if (createvillaDto == null)
+                {
+                    return BadRequest();
+                }
 
-            if (villaDto == null) {
-                return BadRequest();
+                if (await repository.GetAsync(u => u.Name.ToLower() == createvillaDto.Name.ToLower()) != null)
+                {
+                    ModelState.AddModelError("Error", "Name already exists");
+                    return BadRequest(ModelState);
+                }
+
+
+                Villa model = _mapper.Map<Villa>(createvillaDto);
+                await repository.CreateAsync(model);
+                _response.Result = _mapper.Map<VillaDto>(model);
+                _response.StatusCode = HttpStatusCode.Created;
             }
-
-            if (VillaStore.villaList.FirstOrDefault(u => u.Name.ToLower() == villaDto.Name.ToLower())!=null) {
-                ModelState.AddModelError("Error", "Name already exists");
-                return BadRequest(ModelState);
+            catch (Exception ex) {
+                _response.IsSuccess = false;
+                _response.ErrorMessages
+                     = new List<string>() { ex.ToString() };
             }
-
-            if (villaDto.Id > 0) {
-                return StatusCode(StatusCodes.Status500InternalServerError);
-            }
-
-            villaDto.Id = VillaStore.villaList.OrderByDescending(u => u.Id).FirstOrDefault().Id;
-            VillaStore.villaList.Add(villaDto);
-
-            return Ok(villaDto);
+           
+            return Ok(_response);
         }
 
         [HttpDelete("id")]
-        public IActionResult DeleteVilla(int id) {
-            if (id == 0) {
-                return BadRequest();
-            }
+        [Authorize(Roles = "CUSTOM")]
+        public async Task<ActionResult<APIResponse>> DeleteVilla(int id) {
+            try {
+                if (id == 0)
+                {
+                    return BadRequest();
+                }
 
-            var villa = VillaStore.villaList.FirstOrDefault(u => u.Id == id);
-            if (villa == null)
-            {
-                return NotFound();
+                var villa = await repository.GetAsync(u => u.Id == id);
+                if (villa == null)
+                {
+                    return NotFound();
+                }
+                repository.RemoveAsync(villa);
+                _response.StatusCode = HttpStatusCode.NoContent;
+                _response.IsSuccess = true;
             }
-
-            VillaStore.villaList.Remove(villa);
-            return NoContent();
+            catch (Exception ex) {
+                _response.IsSuccess = false;
+                _response.ErrorMessages
+                     = new List<string>() { ex.ToString() };
+            }
+            
+            return _response;
 
         }
 
         [HttpPut]
-        public ActionResult<VillaDto> UpdateVilla(int id, [FromBody]VillaDto villaDto) {
-            if (id != villaDto.Id) {
-                return BadRequest(villaDto);
+        public async Task<ActionResult<APIResponse>> UpdateVilla(int id, [FromBody]VillaUpdateDto updatevillaDto) {
+            try {
+                if (id != updatevillaDto.Id)
+                {
+                    return BadRequest(updatevillaDto);
+                }
+
+                Villa model = _mapper.Map<Villa>(updatevillaDto);
+                repository.UpdateAsync(model);
+                _response.StatusCode = HttpStatusCode.NoContent;
+                _response.IsSuccess = true;
+            }
+            catch (Exception ex)
+            {
+                _response.IsSuccess = false;
+                _response.ErrorMessages
+                     = new List<string>() { ex.ToString() };
             }
 
-            var villa= VillaStore.villaList.FirstOrDefault(v => v.Id == id);
-            villa.Name= villaDto.Name;
-            villa.occupancy = villaDto.occupancy;
-            villa.sqft = villaDto.sqft;
 
-            return Ok(villa);
+            return _response;
         }
 
         [HttpPatch]
-        public ActionResult<VillaDto> PatchVilla(int id, JsonPatchDocument<VillaDto> patch) {
+        public async Task<ActionResult<VillaDto>> PatchVilla(int id, JsonPatchDocument<VillaUpdateDto> patch) {
             if (id == 0 || patch == null) {
                 return BadRequest();
             }
 
-            var villa=VillaStore.villaList.FirstOrDefault(u => u.Id == id);
+            var villa= await repository.GetAsync(u => u.Id == id, tracked:false);
+            VillaUpdateDto villaDto = _mapper.Map<VillaUpdateDto>(villa);
 
-            if (villa == null) { return NotFound(); }
+            if (villaDto == null) { return NotFound(); }
 
-            patch.ApplyTo(villa, ModelState);
+            patch.ApplyTo(villaDto, ModelState);
+
+            Villa model1 = _mapper.Map<Villa>(villaDto);
+
+            repository.UpdateAsync(model1);
 
             if (!ModelState.IsValid) {
                 return BadRequest();
